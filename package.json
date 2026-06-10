@@ -9,7 +9,8 @@
     "lint": "eslint src",
     "tsc": "tsc --noEmit",
     "test": "vitest run",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "prepare": "husky"
   },
   "dependencies": {
     "@prisma/client": "^7.8.0",
@@ -17,6 +18,11 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "zod": "^4.4.3"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix"
+    ]
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -26,6 +32,8 @@
     "@vitest/ui": "^4.1.8",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.7",
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
     "typescript": "^5",
