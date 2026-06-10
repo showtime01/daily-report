@@ -12,6 +12,21 @@
 
 ---
 
+## 使用技術
+
+| 区分 | 内容 |
+|------|------|
+| 言語 | TypeScript |
+| フレームワーク | Next.js 15 (App Router) |
+| UIコンポーネント | Tailwind CSS（shadcn/ui は使わない） |
+| データベース | Prisma + SQLite |
+| API検証 | Zod |
+| テスト | Vitest |
+| Git Hooks | Husky |
+| CI | GitHub Actions（デプロイは行わない） |
+
+---
+
 ## 仕様ドキュメント
 
 ### ER図・要件定義

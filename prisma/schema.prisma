@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// role: "sales" | "manager" | "admin"
+model User {
+  id             Int       @id @default(autoincrement())
+  name           String
+  email          String    @unique
+  passwordDigest String
+  role           String
+  department     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  dailyReports  DailyReport[]
+  customerSales CustomerSales[]
+  comments      Comment[]
+
+  @@map("users")
+}
+
+model Customer {
+  id          Int       @id @default(autoincrement())
+  companyName String
+  contactName String
+  phone       String?
+  email       String?
+  address     String?
+  industry    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  customerSales CustomerSales[]
+  visitRecords  VisitRecord[]
+
+  @@map("customers")
+}
+
+model CustomerSales {
+  id         Int      @id @default(autoincrement())
+  customerId Int
+  userId     Int
+  assignedAt DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@unique([customerId, userId])
+  @@map("customer_sales")
+}
+
+// status: "draft" | "submitted" | "reviewed"
+model DailyReport {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  reportDate  DateTime
+  problem     String?
+  plan        String?
+  status      String    @default("draft")
+  submittedAt DateTime?
+  reviewedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id])
+  visitRecords VisitRecord[]
+  comments     Comment[]
+
+  @@unique([userId, reportDate])
+  @@map("daily_reports")
+}
+
+// visitType: "in_person" | "online" | "phone"
+model VisitRecord {
+  id            Int       @id @default(autoincrement())
+  dailyReportId Int
+  customerId    Int
+  visitType     String
+  purpose       String?
+  content       String?
+  nextAction    String?
+  nextVisitDate DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  dailyReport DailyReport @relation(fields: [dailyReportId], references: [id])
+  customer    Customer    @relation(fields: [customerId], references: [id])
+
+  @@map("visit_records")
+}
+
+// target: "problem" | "plan" | "general"
+model Comment {
+  id            Int      @id @default(autoincrement())
+  dailyReportId Int
+  commenterId   Int
+  target        String
+  body          String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  dailyReport DailyReport @relation(fields: [dailyReportId], references: [id])
+  commenter   User        @relation(fields: [commenterId], references: [id])
+
+  @@map("comments")
+}
