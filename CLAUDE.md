@@ -20,8 +20,8 @@
 ### 画面設計
 @doc/SCREEN_DESIGN.md
 
-### API スキーマ（追加予定）
-<!-- @doc/API_SCHEMA.md -->
+### API スキーマ
+@doc/API_SCHEMA.md
 
-### テスト定義（追加予定）
-<!-- @doc/TEST_DEFINITION.md -->
+### テスト定義
+@doc/TEST_DEFINITION.md
