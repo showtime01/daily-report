@@ -1,0 +1,1240 @@
+openapi: 3.1.0
+info:
+  title: 営業日報システム API
+  description: 営業担当者が日々の顧客訪問記録・課題・翌日計画を報告し、上長がフィードバックを行う営業日報管理システムのAPI
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+tags:
+  - name: auth
+    description: 認証
+  - name: daily-reports
+    description: 日報
+  - name: visit-records
+    description: 訪問記録
+  - name: comments
+    description: コメント
+  - name: users
+    description: ユーザーマスタ
+  - name: customers
+    description: 顧客マスタ
+  - name: customer-sales
+    description: 担当営業
+
+components:
+  schemas:
+    # ──── 共通 ────────────────────────────────────────────────
+    ErrorDetail:
+      type: object
+      required: [field, message]
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - VALIDATION_ERROR
+                - BUSINESS_RULE_ERROR
+                - UNAUTHORIZED
+                - FORBIDDEN
+                - NOT_FOUND
+                - CONFLICT
+                - INTERNAL_SERVER_ERROR
+            message:
+              type: string
+            details:
+              type: array
+              items:
+                $ref: '#/components/schemas/ErrorDetail'
+
+    # ──── 認証 ────────────────────────────────────────────────
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          description: メールアドレス
+        password:
+          type: string
+          minLength: 8
+          description: パスワード（8文字以上）
+
+    AuthUserResponse:
+      type: object
+      required: [id, name, email, role]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [sales, manager, admin]
+        department:
+          type: string
+          nullable: true
+
+    # ──── 訪問記録 ────────────────────────────────────────────
+    VisitRecordInput:
+      type: object
+      required: [customer_id, visit_type]
+      properties:
+        customer_id:
+          type: integer
+          description: 顧客ID
+        visit_type:
+          type: string
+          enum: [in_person, online, phone]
+          description: 訪問種別
+        purpose:
+          type: string
+          maxLength: 200
+          description: 訪問目的（提出時必須）
+        content:
+          type: string
+          maxLength: 1000
+          description: 訪問内容（提出時必須）
+        next_action:
+          type: string
+          maxLength: 500
+          description: 次回アクション
+        next_visit_date:
+          type: string
+          format: date
+          nullable: true
+          description: 次回訪問予定日（YYYY-MM-DD、本日以降）
+
+    VisitRecordResponse:
+      type: object
+      required: [id, daily_report_id, customer_id, customer_name, visit_type]
+      properties:
+        id:
+          type: integer
+        daily_report_id:
+          type: integer
+        customer_id:
+          type: integer
+        customer_name:
+          type: string
+        visit_type:
+          type: string
+          enum: [in_person, online, phone]
+        purpose:
+          type: string
+          nullable: true
+        content:
+          type: string
+          nullable: true
+        next_action:
+          type: string
+          nullable: true
+        next_visit_date:
+          type: string
+          format: date
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    # ──── コメント ────────────────────────────────────────────
+    CommentListItem:
+      type: object
+      required: [id, commenter_id, commenter_name, target, body, created_at]
+      properties:
+        id:
+          type: integer
+        commenter_id:
+          type: integer
+        commenter_name:
+          type: string
+        target:
+          type: string
+          enum: [problem, plan, general]
+        body:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    CommentResponse:
+      type: object
+      required: [id, daily_report_id, commenter_id, commenter_name, target, body, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+        daily_report_id:
+          type: integer
+        commenter_id:
+          type: integer
+        commenter_name:
+          type: string
+        target:
+          type: string
+          enum: [problem, plan, general]
+        body:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CommentCreate:
+      type: object
+      required: [target, body]
+      properties:
+        target:
+          type: string
+          enum: [problem, plan, general]
+        body:
+          type: string
+          minLength: 1
+          maxLength: 1000
+
+    # ──── 日報 ────────────────────────────────────────────────
+    DailyReportCreate:
+      type: object
+      required: [report_date, status, visit_records]
+      properties:
+        report_date:
+          type: string
+          format: date
+          description: 報告日（YYYY-MM-DD）
+        problem:
+          type: string
+          maxLength: 2000
+          description: 課題・相談
+        plan:
+          type: string
+          maxLength: 2000
+          description: 明日やること
+        status:
+          type: string
+          enum: [draft, submitted]
+        visit_records:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisitRecordInput'
+          description: 訪問記録（提出時は1件以上必須）
+
+    DailyReportListItem:
+      type: object
+      required: [id, report_date, status, visit_count, submitted_at, user]
+      properties:
+        id:
+          type: integer
+        report_date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [draft, submitted, reviewed]
+        visit_count:
+          type: integer
+        submitted_at:
+          type: string
+          format: date-time
+          nullable: true
+        user:
+          type: object
+          required: [id, name]
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+
+    DailyReportDetail:
+      type: object
+      required: [id, report_date, status, user, visit_records, comments, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+        report_date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [draft, submitted, reviewed]
+        problem:
+          type: string
+          nullable: true
+        plan:
+          type: string
+          nullable: true
+        submitted_at:
+          type: string
+          format: date-time
+          nullable: true
+        reviewed_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        user:
+          type: object
+          required: [id, name]
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            department:
+              type: string
+              nullable: true
+        visit_records:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisitRecordResponse'
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommentListItem'
+
+    # ──── ユーザー ────────────────────────────────────────────
+    UserCreate:
+      type: object
+      required: [name, email, password, role]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          description: 英大文字・英小文字・数字をそれぞれ1文字以上含む
+        role:
+          type: string
+          enum: [sales, manager, admin]
+        department:
+          type: string
+          maxLength: 100
+
+    UserUpdate:
+      type: object
+      required: [name, email, role]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          description: 省略時はパスワードを変更しない
+        role:
+          type: string
+          enum: [sales, manager, admin]
+        department:
+          type: string
+          maxLength: 100
+
+    UserResponse:
+      type: object
+      required: [id, name, email, role, created_at, updated_at]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [sales, manager, admin]
+        department:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    # ──── 顧客 ────────────────────────────────────────────────
+    CustomerSalesInput:
+      type: object
+      required: [user_id, assigned_at]
+      properties:
+        user_id:
+          type: integer
+        assigned_at:
+          type: string
+          format: date
+
+    CustomerSalesItem:
+      type: object
+      required: [user_id, user_name, assigned_at]
+      properties:
+        user_id:
+          type: integer
+        user_name:
+          type: string
+        department:
+          type: string
+          nullable: true
+        assigned_at:
+          type: string
+          format: date
+
+    CustomerCreate:
+      type: object
+      required: [company_name, contact_name]
+      properties:
+        company_name:
+          type: string
+          maxLength: 200
+        contact_name:
+          type: string
+          maxLength: 100
+        phone:
+          type: string
+          description: 電話番号（ハイフンあり・なし両対応）
+        email:
+          type: string
+          format: email
+        address:
+          type: string
+          maxLength: 300
+        industry:
+          type: string
+          maxLength: 100
+        sales:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerSalesInput'
+
+    CustomerListItem:
+      type: object
+      required: [id, company_name, contact_name, sales_count, created_at]
+      properties:
+        id:
+          type: integer
+        company_name:
+          type: string
+        contact_name:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        industry:
+          type: string
+          nullable: true
+        sales_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    CustomerDetail:
+      type: object
+      required: [id, company_name, contact_name, created_at, updated_at, sales]
+      properties:
+        id:
+          type: integer
+        company_name:
+          type: string
+        contact_name:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        industry:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        sales:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomerSalesItem'
+
+    CustomerSalesAssignResponse:
+      type: object
+      required: [customer_id, user_id, user_name, assigned_at, created_at]
+      properties:
+        customer_id:
+          type: integer
+        user_id:
+          type: integer
+        user_name:
+          type: string
+        department:
+          type: string
+          nullable: true
+        assigned_at:
+          type: string
+          format: date
+        created_at:
+          type: string
+          format: date-time
+
+  responses:
+    Unauthorized:
+      description: 未認証
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: アクセス拒否
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: リソースが存在しない
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    BadRequest:
+      description: バリデーションエラー
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: 一意制約違反
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+paths:
+  # ──── 認証 ────────────────────────────────────────────────
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: ログイン
+      description: メールアドレス・パスワードで認証し、セッションを発行する
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: ログイン成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    delete:
+      tags: [auth]
+      summary: ログアウト
+      description: セッションを破棄する
+      responses:
+        '204':
+          description: ログアウト成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: ログインユーザー情報取得
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ──── 日報 ────────────────────────────────────────────────
+  /daily-reports:
+    get:
+      tags: [daily-reports]
+      summary: 日報一覧取得
+      description: |
+        - sales: 自分の日報のみ返す
+        - manager: 全salesユーザーの日報を返す
+      parameters:
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, submitted, reviewed]
+        - name: user_id
+          in: query
+          description: 担当者ID（manager のみ有効）
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DailyReportListItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [daily-reports]
+      summary: 日報作成
+      description: 日報を新規作成する（sales のみ）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DailyReportCreate'
+      responses:
+        '201':
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyReportDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /daily-reports/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      tags: [daily-reports]
+      summary: 日報詳細取得
+      description: 訪問記録・コメントを含む日報詳細を取得する
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyReportDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [daily-reports]
+      summary: 日報更新（下書き）
+      description: status = draft の日報のみ更新可（sales のみ）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DailyReportCreate'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyReportDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /daily-reports/{id}/submit:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    post:
+      tags: [daily-reports]
+      summary: 日報提出
+      description: 下書き日報を提出する（sales のみ、status = draft の場合のみ）
+      responses:
+        '200':
+          description: 提出成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyReportDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /daily-reports/{id}/review:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    post:
+      tags: [daily-reports]
+      summary: 日報を確認済みにする
+      description: 提出済み日報を確認済みにする（manager のみ、status = submitted の場合のみ）
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyReportDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ──── 訪問記録 ────────────────────────────────────────────
+  /daily-reports/{id}/visit-records:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    post:
+      tags: [visit-records]
+      summary: 訪問記録追加
+      description: 日報に訪問記録を追加する（sales のみ、status = draft の場合のみ）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisitRecordInput'
+      responses:
+        '201':
+          description: 追加成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitRecordResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /daily-reports/{id}/visit-records/{vrid}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: vrid
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    put:
+      tags: [visit-records]
+      summary: 訪問記録更新
+      description: 訪問記録を更新する（sales のみ、status = draft の場合のみ）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisitRecordInput'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitRecordResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [visit-records]
+      summary: 訪問記録削除
+      description: 訪問記録を削除する（sales のみ、status = draft の場合のみ）。最後の1件は削除不可
+      responses:
+        '204':
+          description: 削除成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ──── コメント ────────────────────────────────────────────
+  /daily-reports/{id}/comments:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      tags: [comments]
+      summary: コメント一覧取得
+      parameters:
+        - name: target
+          in: query
+          schema:
+            type: string
+            enum: [problem, plan, general]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CommentListItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [comments]
+      summary: コメント投稿
+      description: コメントを投稿する（manager のみ、status = submitted または reviewed の場合のみ）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentCreate'
+      responses:
+        '201':
+          description: 投稿成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ──── ユーザーマスタ ────────────────────────────────────────
+  /users:
+    get:
+      tags: [users]
+      summary: ユーザー一覧取得
+      description: 論理削除済みを除くユーザー一覧（admin のみ）
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [sales, manager, admin]
+        - name: department
+          in: query
+          description: 部署名（部分一致）
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [users]
+      summary: ユーザー登録
+      description: ユーザーを新規登録する（admin のみ）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: 登録成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /users/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      tags: [users]
+      summary: ユーザー詳細取得
+      description: ユーザー詳細を取得する（admin のみ）
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [users]
+      summary: ユーザー更新
+      description: ユーザー情報を更新する（admin のみ）。password は省略時変更なし
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    delete:
+      tags: [users]
+      summary: ユーザー論理削除
+      description: ユーザーを論理削除する（admin のみ）
+      responses:
+        '204':
+          description: 削除成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ──── 顧客マスタ ────────────────────────────────────────────
+  /customers:
+    get:
+      tags: [customers]
+      summary: 顧客一覧取得
+      description: |
+        - admin: 全件取得・検索可
+        - sales: マスタ選択用に全件返す（検索不可）
+      parameters:
+        - name: company_name
+          in: query
+          description: 企業名（部分一致、admin のみ有効）
+          schema:
+            type: string
+        - name: industry
+          in: query
+          description: 業種（部分一致、admin のみ有効）
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomerListItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [customers]
+      summary: 顧客登録
+      description: 顧客を新規登録する（admin のみ）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerCreate'
+      responses:
+        '201':
+          description: 登録成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /customers/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      tags: [customers]
+      summary: 顧客詳細取得
+      description: 担当営業一覧を含む顧客詳細を取得する（admin のみ）
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [customers]
+      summary: 顧客更新
+      description: 顧客情報を更新する（admin のみ）。sales 配列を送信した場合、既存の担当営業割り当てを置き換える
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerCreate'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [customers]
+      summary: 顧客論理削除
+      description: 顧客を論理削除する（admin のみ）
+      responses:
+        '204':
+          description: 削除成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ──── 担当営業 ────────────────────────────────────────────
+  /customers/{id}/sales:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    post:
+      tags: [customer-sales]
+      summary: 担当営業追加
+      description: 担当営業を追加する（admin のみ）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerSalesInput'
+      responses:
+        '201':
+          description: 追加成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerSalesAssignResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /customers/{id}/sales/{userId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    delete:
+      tags: [customer-sales]
+      summary: 担当営業削除
+      description: 担当営業の割り当てを削除する（admin のみ）
+      responses:
+        '204':
+          description: 削除成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
