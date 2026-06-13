@@ -10,7 +10,8 @@
     "tsc": "tsc --noEmit",
     "test": "vitest run",
     "test:ui": "vitest --ui",
-    "prepare": "husky"
+    "prepare": "husky",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.8.0",
