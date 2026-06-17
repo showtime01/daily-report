@@ -62,6 +62,7 @@ export async function GET(request: Request): Promise<Response> {
     include: {
       user: { select: { id: true, name: true } },
       visitRecords: { select: { id: true } },
+      _count: { select: { comments: true } },
     },
   })
 
@@ -70,6 +71,7 @@ export async function GET(request: Request): Promise<Response> {
     report_date: toDateISO(r.reportDate),
     status: r.status,
     visit_count: r.visitRecords.length,
+    comment_count: r._count.comments,
     submitted_at: r.submittedAt?.toISOString() ?? null,
     user: { id: r.user.id, name: r.user.name },
   }))
