@@ -70,7 +70,7 @@ export async function PUT(
   if (!Number.isInteger(visitRecordId)) return errorResponse(404, 'NOT_FOUND', '訪問記録が存在しません')
 
   const checked = await getReportAndVisitRecord(reportId, visitRecordId, user.id)
-  if ('error' in checked) return checked.error
+  if ('error' in checked) return checked.error as Response
 
   let body: unknown
   try {
@@ -130,7 +130,7 @@ export async function DELETE(
   if (!Number.isInteger(visitRecordId)) return errorResponse(404, 'NOT_FOUND', '訪問記録が存在しません')
 
   const checked = await getReportAndVisitRecord(reportId, visitRecordId, user.id)
-  if ('error' in checked) return checked.error
+  if ('error' in checked) return checked.error as Response
 
   const count = await prisma.visitRecord.count({ where: { dailyReportId: reportId } })
   if (count <= 1) {
