@@ -1,10 +1,8 @@
+import { STATUS_LABEL } from '@/lib/constants'
+
 type Status = 'draft' | 'submitted' | 'reviewed'
 
-const LABEL: Record<Status, string> = {
-  draft: '下書き',
-  submitted: '提出済み',
-  reviewed: '確認済み',
-}
+const LABEL: Record<Status, string> = STATUS_LABEL as Record<Status, string>
 
 const COLOR: Record<Status, string> = {
   draft: 'bg-gray-100 text-gray-700',

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Header from '@/components/Header'
 import StatusBadge from '@/components/StatusBadge'
+import { VISIT_TYPE_LABEL } from '@/lib/constants'
 
 type User = { id: number; name: string; role: string }
 type VisitRecord = {
@@ -32,11 +33,6 @@ type ReportDetail = {
   comments: Comment[]
 }
 
-const VISIT_TYPE_LABEL: Record<string, string> = {
-  in_person: '対面',
-  online: 'オンライン',
-  phone: '電話',
-}
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
 

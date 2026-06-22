@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { VISIT_TYPE_LABEL } from '@/lib/constants'
 
 type Customer = { id: number; company_name: string }
 type VisitType = 'in_person' | 'online' | 'phone'
@@ -40,11 +41,7 @@ type Props = {
   customers: Customer[]
 }
 
-const VISIT_TYPE_LABELS: Record<VisitType, string> = {
-  in_person: '対面',
-  online: 'オンライン',
-  phone: '電話',
-}
+const VISIT_TYPE_LABELS = VISIT_TYPE_LABEL as Record<VisitType, string>
 
 function emptyVisit(): VisitRecordForm {
   return {
