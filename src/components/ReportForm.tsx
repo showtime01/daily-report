@@ -301,6 +301,7 @@ export default function ReportForm({
                       type="text"
                       value={v.purpose}
                       onChange={(e) => updateVisit(idx, { purpose: e.target.value })}
+                      placeholder="訪問目的を入力"
                       className={`w-full rounded border px-2 py-1.5 text-sm text-gray-900 ${
                         ve.purpose ? 'border-red-400' : 'border-gray-300'
                       }`}
@@ -319,6 +320,7 @@ export default function ReportForm({
                       value={v.content}
                       onChange={(e) => updateVisit(idx, { content: e.target.value })}
                       rows={3}
+                      placeholder="訪問内容を入力"
                       className={`w-full rounded border px-2 py-1.5 text-sm text-gray-900 resize-y ${
                         ve.content ? 'border-red-400' : 'border-gray-300'
                       }`}
