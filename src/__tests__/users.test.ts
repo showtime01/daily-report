@@ -1,9 +1,9 @@
 import { beforeAll, afterEach, afterAll, describe, it, expect } from 'vitest'
 import { prisma } from '@/lib/prisma'
-import { hashPassword, verifyPassword } from '@/lib/password'
+import { hashPassword } from '@/lib/password'
 import { POST as loginPOST } from '@/app/api/v1/auth/login/route'
 import { GET as listGET, POST as createPOST } from '@/app/api/v1/users/route'
-import { GET as detailGET, PUT as updatePUT, DELETE as deleteDELETE } from '@/app/api/v1/users/[id]/route'
+import { PUT as updatePUT, DELETE as deleteDELETE } from '@/app/api/v1/users/[id]/route'
 
 // ──────────────────────────────────────────────────────────
 // ヘルパー

@@ -49,7 +49,6 @@ function vrParams(id: number, vrid: number) {
 
 let userId1: number
 let userId2: number
-let userId3: number
 let customerId1: number
 let customerId2: number
 let customerId3: number
@@ -75,7 +74,7 @@ beforeAll(async () => {
   const u2 = await prisma.user.create({
     data: { name: '佐藤 花子', email: 'sato@example.com', passwordDigest: digest, role: 'sales', department: '営業部' },
   })
-  const u3 = await prisma.user.create({
+  await prisma.user.create({
     data: { name: '鈴木 部長', email: 'suzuki@example.com', passwordDigest: digest, role: 'manager', department: '営業部' },
   })
   await prisma.user.create({
@@ -83,7 +82,6 @@ beforeAll(async () => {
   })
   userId1 = u1.id
   userId2 = u2.id
-  userId3 = u3.id
 
   const c1 = await prisma.customer.create({ data: { companyName: '株式会社アルファ', contactName: '田中 様', industry: '製造業' } })
   const c2 = await prisma.customer.create({ data: { companyName: '△△商事', contactName: '鈴木 様', industry: '商社' } })
