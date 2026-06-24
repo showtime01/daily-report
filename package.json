@@ -10,6 +10,7 @@
     "tsc": "tsc --noEmit",
     "test": "vitest run",
     "test:ui": "vitest --ui",
+    "test:e2e": "playwright test",
     "prepare": "husky",
     "postinstall": "prisma generate"
   },
@@ -28,6 +29,7 @@
     ]
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
